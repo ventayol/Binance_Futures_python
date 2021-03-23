@@ -40,10 +40,11 @@ class SubscriptionClient(object):
         self.__secret_key = secret_key
         self.websocket_request_impl = WebsocketRequestImpl(self.__api_key)
         self.connections = list()
+        self.userStreamConnections = list()
         self.uri = WebSocketDefine.Uri
         is_auto_connect = True
         receive_limit_ms = 60000
-        connection_delay_failure = 1
+        connection_delay_failure = 3
         if "uri" in kwargs:
             self.uri = kwargs["uri"]
         if "is_auto_connect" in kwargs:
@@ -54,15 +55,28 @@ class SubscriptionClient(object):
             connection_delay_failure = kwargs["connection_delay_failure"]
         self.__watch_dog = WebSocketWatchDog(is_auto_connect, receive_limit_ms, connection_delay_failure)
 
-    def __create_connection(self, request):
+    def __create_connection(self, request, isUser = False):
         connection = WebsocketConnection(self.__api_key, self.__secret_key, self.uri, self.__watch_dog, request)
-        self.connections.append(connection)
+        if (isUser):
+            self.userStreamConnections.append(connection)
+        else:
+            self.connections.append(connection)
         connection.connect()
 
     def unsubscribe_all(self):
         for conn in self.connections:
             conn.close()
         self.connections.clear()
+
+        for conn in self.userStreamConnections:
+            conn.close()
+        self.userStreamConnections.clear()
+
+    def unsubscribe_user_stream(self):
+        for conn in self.userStreamConnections:
+            conn.close()
+        self.userStreamConnections.clear()
+
 
     def subscribe_aggregate_trade_event(self, symbol: 'str', callback, error_handler=None):
         """
@@ -246,7 +260,7 @@ class SubscriptionClient(object):
 
         Stream Names: <symbol>@depth<levels> OR <symbol>@depth<levels>@100ms.
         """
-        print(update_time)
+        #print(update_time)
         request = self.websocket_request_impl.subscribe_book_depth_event(symbol, limit, update_time, callback, error_handler)
         self.__create_connection(request)
 
@@ -266,7 +280,7 @@ class SubscriptionClient(object):
         User Data Streams
         """
         request = self.websocket_request_impl.subscribe_user_data_event(listenKey, callback, error_handler)
-        self.__create_connection(request)
+        self.__create_connection(request, True)
 
     def subscribe_pair_mark_price_event(self, pair: 'str', callback, error_handler=None):
         """

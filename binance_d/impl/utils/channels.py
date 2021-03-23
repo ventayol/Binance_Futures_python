@@ -22,9 +22,10 @@ def index_price_channel(pair):
 def mark_price_channel(symbol):
     channel = dict()
     channel["params"] = list()
-    channel["params"].append(symbol + "@markPrice")
+    channel["params"].append(symbol + "@markPrice@1s")
     channel["id"] = get_current_timestamp()
     channel["method"] = "SUBSCRIBE"
+    print(channel)
     return json.dumps(channel)
 
 def continuous_kline_channel(pair, contract_type, interval):

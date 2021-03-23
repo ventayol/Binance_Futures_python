@@ -10,6 +10,7 @@ class MarkPriceEvent:
     @staticmethod
     def json_parse(json_data):
         result = MarkPriceEvent()
+        #print("Hi there!")
         result.eventType = json_data.get_string("e")
         result.eventTime = json_data.get_int("E")
         result.symbol = json_data.get_string("s")

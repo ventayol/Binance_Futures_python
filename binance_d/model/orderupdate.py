@@ -69,5 +69,6 @@ class OrderUpdate:
         result.activationPrice = data_group.get_float_or_default("AP", None)
         result.callbackRate = data_group.get_float_or_default("cr", None)
         result.positionSide = data_group.get_string("ps")
+        result.realizedProfit = data_group.get_float_or_default("rp", None)
 
         return result

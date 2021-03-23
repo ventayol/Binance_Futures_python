@@ -31,6 +31,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = aggregate_trade_channel(symbol)
 
         return request
 
@@ -51,6 +52,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = index_price_channel(pair)
 
         return request
 
@@ -71,6 +73,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = mark_price_channel(symbol)
 
         return request
 
@@ -93,6 +96,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = continuous_kline_channel(pair, contract_type, interval)
 
         return request
 
@@ -114,6 +118,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = kline_channel(symbol, interval)
 
         return request
 
@@ -135,6 +140,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = mark_price_kline_channel(symbol, interval)
 
         return request
 
@@ -156,6 +162,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = index_kline_channel(pair, interval)
 
         return request
     
@@ -176,6 +183,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = symbol_miniticker_channel(symbol)
 
         return request
 
@@ -199,6 +207,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = all_miniticker_channel()
 
         return request
 
@@ -219,6 +228,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = symbol_ticker_channel(symbol)
 
         return request
     
@@ -242,6 +252,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = all_ticker_channel()
 
         return request
 
@@ -262,6 +273,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = symbol_bookticker_channel(symbol)
 
         return request
 
@@ -281,6 +293,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = all_bookticker_channel()
 
         return request
     
@@ -301,6 +314,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = symbol_liquidation_channel(symbol)
 
         return request
     
@@ -320,6 +334,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = all_liquidation_channel()
 
         return request
 
@@ -341,6 +356,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = book_depth_channel(symbol, limit, update_time)
 
         return request
 
@@ -361,6 +377,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = diff_depth_channel(symbol, update_time)
 
         return request
 
@@ -374,8 +391,8 @@ class WebsocketRequestImpl(object):
             time.sleep(0.01)
 
         def json_parse(json_wrapper):
-            print("event type: ", json_wrapper.get_string("e"))
-            print(json_wrapper)
+            #print("event type: ", json_wrapper.get_string("e"))
+            #print(json_wrapper)
             if(json_wrapper.get_string("e") == "ACCOUNT_UPDATE"):
                 result = AccountUpdate.json_parse(json_wrapper)
             elif(json_wrapper.get_string("e") == "ORDER_TRADE_UPDATE"):
@@ -389,6 +406,7 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = user_data_channel(listenKey)
 
         return request
 
@@ -413,5 +431,6 @@ class WebsocketRequestImpl(object):
         request.json_parser = json_parse
         request.update_callback = callback
         request.error_handler = error_handler
+        request.channel = mark_price_channel(pair)
 
         return request

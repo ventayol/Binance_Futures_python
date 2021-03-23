@@ -79,29 +79,37 @@ class WebsocketConnection:
         self.last_receive_time = 0
         self.logger = logging.getLogger("binance-futures")
         self.state = ConnectionState.IDLE
+        self.retry_count = 5
         global connection_id
         connection_id += 1
         self.id = connection_id
 
     def in_delay_connection(self):
-        return self.delay_in_second != -1
+        return self.delay_in_second > 0 or self.delay_in_second < 5
 
     def re_connect_in_delay(self, delay_in_second):
         if self.ws is not None:
             self.ws.close()
             self.ws = None
+        if self.retry_count <= 0:
+            self.close_on_error()
+            return
+
         self.delay_in_second = delay_in_second
         self.logger.warning("[Sub][" + str(self.id) + "] Reconnecting after "
-                            + str(self.delay_in_second) + " seconds later")
+                            + str(self.delay_in_second) + " seconds later" + " - " + self.request.channel + "(" + str(self.retry_count) + ")")
 
     def re_connect(self):
-        if self.delay_in_second != 0:
-            self.delay_in_second -= 1
-            self.logger.warning("In delay connection: " + str(self.delay_in_second))
+        self.delay_in_second -= 1
+        if self.delay_in_second > 0:
+            self.logger.warning("In delay connection: " + str(self.delay_in_second) + " - " + self.request.channel)
         else:
+            self.retry_count -= 1
             self.connect()
 
     def connect(self):
+        self.delay_in_second -= 1
+        self.logger.warning("[Sub][" + str(self.id) + "] Connecting " + " - " + self.request.channel)
         if self.state == ConnectionState.CONNECTED:
             self.logger.info("[Sub][" + str(self.id) + "] Already connected")
         else:
@@ -118,8 +126,9 @@ class WebsocketConnection:
         self.logger.error("[Sub][" + str(self.id) + "] Closing normally")
 
     def on_open(self, ws):
-        self.logger.info("[Sub][" + str(self.id) + "] Connected to server")
+        self.logger.info("[Sub][" + str(self.id) + "] Connected to server" + " - " + self.request.channel)
         self.ws = ws
+        self.retry_count = 5
         self.last_receive_time = get_current_timestamp()
         self.state = ConnectionState.CONNECTED
         self.__watch_dog.on_connection_created(self)
@@ -132,20 +141,24 @@ class WebsocketConnection:
             print('error')
             exception = BinanceApiException(BinanceApiException.SUBSCRIPTION_ERROR, error_message)
             self.request.error_handler(exception)
-        self.logger.error("[Sub][" + str(self.id) + "] " + str(error_message))
+        self.logger.error("[Sub][" + str(self.id) + "] Error: " + str(error_message))
 
     def on_failure(self, error):
         print('on_failure')
         self.on_error("Unexpected error: " + str(error))
         self.close_on_error()
 
+    def on_close(self):
+        if self.request.error_handler is not None and self.retry_count <= 0:
+            exception = BinanceApiException(BinanceApiException.SUBSCRIPTION_ERROR, "close_socket")
+            self.request.error_handler(exception)
+        self.logger.error("[Sub][" + str(self.id) + "] close_socket")
+
     def on_message(self, message):
+        self.retry_count = 5
         self.last_receive_time = get_current_timestamp()
-        print('Type of message is', type(message))
         if not isinstance(message, str):
-            print('Decompressing...')
             message = gzip.decompress(message).decode('utf-8')
-        print(message)
         json_wrapper = parse_json_from_string(message)
 
         if json_wrapper.contain_key("method") and json_wrapper.get_string("method") == "PING":
@@ -175,7 +188,7 @@ class WebsocketConnection:
                 self.request.update_callback(SubscribeMessageType.RESPONSE, res)
         except Exception as e:
             self.on_error("Process error: " + str(e)
-                     + " You should capture the exception in your error handler")
+                          + " You should capture the exception in your error handler")
 
     def __on_receive_payload(self, json_wrapper):
         res = None
@@ -190,7 +203,7 @@ class WebsocketConnection:
                 self.request.update_callback(SubscribeMessageType.PAYLOAD, res)
         except Exception as e:
             self.on_error("Process error: " + str(e)
-                     + " You should capture the exception in your error handler")
+                          + " You should capture the exception in your error handler")
 
         if self.request.auto_close:
             self.close()
@@ -198,10 +211,10 @@ class WebsocketConnection:
     def __process_ping_on_new_spec(self, ping_ts):
         """Respond on explicit ping frame
         """
-        print("Responding to explicit PING...")
+        #print("Responding to explicit PING...")
         respond_pong_msg = "{\"method\":\"PONG\",\"E\":" + str(ping_ts) + "}"
         self.send(respond_pong_msg)
-        print(respond_pong_msg)
+        # print(respond_pong_msg)
         return
 
     def __process_ping_on_trading_line(self, ping_ts):
@@ -217,3 +230,4 @@ class WebsocketConnection:
             self.ws.close()
             self.state = ConnectionState.CLOSED_ON_ERROR
             self.logger.error("[Sub][" + str(self.id) + "] Connection is closing due to error")
+            self.on_close()

@@ -12,6 +12,7 @@ binance_futures.egg-info/*
 
 # VSCode
 .vscode
+.history
 
 # Python venv
 .venv
